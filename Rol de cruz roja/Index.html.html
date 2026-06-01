@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Rol de Voluntariado - Cruz Roja</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#f4f4f4;color:#222;min-height:100vh}
+input,select,button{font-family:inherit}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+.header{background:#CC0000;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+.header-icon{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.header h1{font-size:17px;font-weight:700}
+.header p{font-size:11px;opacity:0.85}
+.tabs{display:flex;background:#fff;border-bottom:2px solid #e0e0e0;overflow-x:auto}
+.tab{padding:11px 18px;border:none;cursor:pointer;font-weight:400;background:none;border-bottom:3px solid transparent;color:#666;font-size:14px;white-space:nowrap;font-family:inherit}
+.tab.active{font-weight:700;border-bottom:3px solid #CC0000;color:#CC0000}
+.container{max-width:960px;margin:0 auto;padding:16px 12px}
+.card{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:16px}
+.card-body{padding:20px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.stat{flex:1;min-width:110px;background:#fff;border-radius:10px;padding:12px 14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.08);border-top:3px solid #CC0000}
+.stat-num{font-size:22px;font-weight:800;color:#CC0000}
+.stat-lb{font-size:11px;color:#888;margin-top:2px}
+table{width:100%;border-collapse:collapse}
+thead tr{background:#990000;color:#fff}
+th{padding:10px 14px;text-align:left;font-size:13px}
+tbody tr{border-bottom:1px solid #eee}
+tbody tr:hover{background:#fff8f8}
+td{padding:9px 14px;font-size:13px;vertical-align:top}
+.btn{display:inline-flex;align-items:center;gap:6px;background:#CC0000;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;border:none;cursor:pointer;box-shadow:0 3px 8px rgba(204,0,0,0.3)}
+.btn:hover{background:#990000}
+.btn-secondary{background:#eee;color:#333;box-shadow:none}
+.btn-secondary:hover{background:#ddd}
+.badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-green{background:#e8f5e9;color:#2e7d32}
+.badge-red{background:#ffebee;color:#c62828}
+.badge-yellow{background:#fff3cd;color:#856404}
+.loading{text-align:center;padding:40px;color:#aaa}
+.spinner{display:inline-block;width:32px;height:32px;border:3px solid #eee;border-top:3px solid #CC0000;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:11px 22px;border-radius:30px;font-size:14px;font-weight:600;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,0.25);white-space:nowrap;display:none}
+.toast.show{display:block}
+.sync-badge{font-size:11px;opacity:0.8;display:flex;align-items:center;gap:5px;margin-left:auto}
+.dot{width:7px;height:7px;border-radius:50%;background:#4caf50;display:inline-block}
+.dot.loading{background:#ff9800}
+@media(max-width:600px){th,td{font-size:12px;padding:8px 8px}.header h1{font-size:15px}}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-icon">🩺</div>
+  <div>
+    <h1>Cruz Roja Costarricense</h1>
+    <p>Rol de Servicio de Voluntariado</p>
+  </div>
+  <div class="sync-badge">
+    <span class="dot" id="dot"></span>
+    <span id="sync-txt">Cargando...</span>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" onclick="setTab('rol')">📅 Rol</button>
+  <button class="tab" onclick="setTab('reporte')">📊 Reporte</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ROL -->
+<div id="tab-rol" class="container">
+  <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <a href="https://forms.gle/CWtgfRa18qB8VUs16" target="_blank" class="btn">✋ Anotarme en el Rol</a>
+    <button class="btn btn-secondary" onclick="cargarDatos()">🔄 Actualizar</button>
+    <button class="btn btn-secondary" onclick="exportarPDF('rol')">📄 PDF del Rol</button>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat"><div class="stat-num" id="s-total">—</div><div class="stat-lb">📋 Turnos totales</div></div>
+    <div class="stat"><div class="stat-num" id="s-dias">—</div><div class="stat-lb">📅 Días con turnos</div></div>
+    <div class="stat"><div class="stat-num" id="s-hoy">—</div><div class="stat-lb">👤 Turnos hoy</div></div>
+  </div>
+
+  <div class="card">
+    <div style="overflow-x:auto">
+      <table id="tabla-rol">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Nombre</th>
+            <th>Hora entrada</th>
+            <th>Hora salida</th>
+            <th>Comentarios</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-rol">
+          <tr><td colspan="5"><div class="loading"><div class="spinner"></div><br>Cargando datos...</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- REPORTE -->
+<div id="tab-reporte" class="container" style="display:none">
+  <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+    <div>
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">Filtrar por fecha</label>
+      <input type="date" id="filtro-fecha" onchange="renderReporte()" style="padding:8px 10px;border-radius:6px;border:1px solid #ddd;font-size:13px"/>
+    </div>
+    <div>
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">Buscar nombre</label>
+      <input type="text" id="filtro-nombre" oninput="renderReporte()" placeholder="Ej: María..." style="padding:8px 10px;border-radius:6px;border:1px solid #ddd;font-size:13px"/>
+    </div>
+    <button class="btn btn-secondary" onclick="document.getElementById('filtro-fecha').value='';document.getElementById('filtro-nombre').value='';renderReporte()">✕ Limpiar</button>
+    <button class="btn btn-secondary" onclick="exportarPDF('reporte')">📄 PDF Reporte</button>
+  </div>
+
+  <div class="card">
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nombre</th>
+            <th>Fecha</th>
+            <th>Entrada</th>
+            <th>Salida</th>
+            <th>Comentarios</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-reporte">
+          <tr><td colspan="6" style="text-align:center;padding:24px;color:#aaa">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div id="reporte-total" style="font-size:12px;color:#999;margin-top:6px"></div>
+</div>
+
+<script>
+// ── URL del Google Sheets publicado como CSV ──
+const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTq6bkFns1wOJUTXWLaPu9qATleQbQrYUBWK7dSu4ikm-tcOQ8ERnibegIVIWmoN4W8m7wVPxc6XwPD/pub?output=csv";
+
+let registros = [];
+let tabActual = "rol";
+
+function setTab(t) {
+  tabActual = t;
+  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+  document.getElementById("tab-rol").style.display     = t==="rol"     ? "" : "none";
+  document.getElementById("tab-reporte").style.display = t==="reporte" ? "" : "none";
+  if(t==="reporte") renderReporte();
+}
+
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 3000);
+}
+
+function setSyncStatus(ok, txt) {
+  document.getElementById("dot").className = "dot" + (ok ? "" : " loading");
+  document.getElementById("sync-txt").textContent = txt;
+}
+
+async function cargarDatos() {
+  setSyncStatus(false, "Actualizando...");
+  try {
+    const res  = await fetch(SHEET_CSV + "&t=" + Date.now());
+    const text = await res.text();
+    registros  = parseCSV(text);
+    renderRol();
+    renderReporte();
+    setSyncStatus(true, "Actualizado ✓");
+    showToast("✅ Datos actualizados");
+  } catch(e) {
+    setSyncStatus(false, "Error de conexión");
+    showToast("❌ No se pudo conectar. Revisá tu internet.");
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split("\n").slice(1); // saltar encabezado
+  return lines.map(line => {
+    const cols = line.split(",").map(c => c.replace(/^"|"$/g,"").trim());
+    return {
+      marca:   cols[0] || "",
+      nombre:  cols[1] || "",
+      fecha:   cols[2] || "",
+      entrada: cols[3] || "",
+      salida:  cols[4] || "",
+      nota:    cols[5] || ""
+    };
+  }).filter(r => r.nombre);
+}
+
+function formatFecha(f) {
+  if(!f) return "";
+  const d = new Date(f);
+  if(isNaN(d)) return f;
+  return d.toLocaleDateString("es-CR", {day:"2-digit", month:"2-digit", year:"numeric"});
+}
+
+function formatHora(h) {
+  if(!h) return "";
+  // Si ya viene como hora de sheets (decimal) o string
+  if(h.includes(":")) return h;
+  return h;
+}
+
+function renderRol() {
+  const tbody = document.getElementById("tbody-rol");
+  if(registros.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:#aaa">No hay registros aún. Compartí el formulario con tu equipo.</td></tr>`;
+    document.getElementById("s-total").textContent = "0";
+    document.getElementById("s-dias").textContent  = "0";
+    document.getElementById("s-hoy").textContent   = "0";
+    return;
+  }
+
+  // Agrupar por fecha
+  const grupos = {};
+  registros.forEach(r => {
+    const f = formatFecha(r.fecha) || r.fecha;
+    if(!grupos[f]) grupos[f] = [];
+    grupos[f].push(r);
+  });
+
+  const hoy = new Date().toLocaleDateString("es-CR", {day:"2-digit",month:"2-digit",year:"numeric"});
+  let html = "";
+  Object.keys(grupos).forEach(fecha => {
+    grupos[fecha].forEach((r, i) => {
+      html += `<tr>
+        ${i===0 ? `<td rowspan="${grupos[fecha].length}" style="font-weight:700;color:#CC0000;border-right:2px solid #CC0000;white-space:nowrap;vertical-align:middle">${fecha}</td>` : ""}
+        <td style="font-weight:600">${r.nombre}</td>
+        <td><span class="badge badge-green">${r.entrada}</span></td>
+        <td><span class="badge badge-red">${r.salida}</span></td>
+        <td style="color:#666;font-size:12px">${r.nota}</td>
+      </tr>`;
+    });
+  });
+
+  tbody.innerHTML = html;
+  document.getElementById("s-total").textContent = registros.length;
+  document.getElementById("s-dias").textContent  = Object.keys(grupos).length;
+  document.getElementById("s-hoy").textContent   = (grupos[hoy] || []).length;
+}
+
+function renderReporte() {
+  const filtroFecha  = document.getElementById("filtro-fecha")?.value  || "";
+  const filtroNombre = (document.getElementById("filtro-nombre")?.value || "").toLowerCase();
+
+  let filtrados = registros.filter(r => {
+    const fechaFmt = formatFecha(r.fecha);
+    const matchFecha  = !filtroFecha  || r.fecha.includes(filtroFecha) || fechaFmt.includes(filtroFecha);
+    const matchNombre = !filtroNombre || r.nombre.toLowerCase().includes(filtroNombre);
+    return matchFecha && matchNombre;
+  });
+
+  const tbody = document.getElementById("tbody-reporte");
+  if(filtrados.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:#aaa">No hay registros para este filtro</td></tr>`;
+    document.getElementById("reporte-total").textContent = "Total: 0 registro(s)";
+    return;
+  }
+
+  tbody.innerHTML = filtrados.map((r, i) => `
+    <tr style="background:${i%2===0?"#fff":"#fafafa"}">
+      <td style="color:#aaa">${i+1}</td>
+      <td style="font-weight:600">${r.nombre}</td>
+      <td>${formatFecha(r.fecha)}</td>
+      <td><span class="badge badge-green">${r.entrada}</span></td>
+      <td><span class="badge badge-red">${r.salida}</span></td>
+      <td style="color:#666;font-size:12px">${r.nota}</td>
+    </tr>`).join("");
+
+  document.getElementById("reporte-total").textContent = `Total: ${filtrados.length} registro(s)`;
+}
+
+function exportarPDF(modo) {
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:"landscape", unit:"mm", format:"a4"});
+  const ro=[204,0,0], rd=[153,0,0], bl=[255,255,255], gr=[245,245,245];
+
+  doc.setFillColor(...ro); doc.rect(0,0,297,22,"F");
+  doc.setTextColor(...bl); doc.setFontSize(14); doc.setFont("helvetica","bold");
+  doc.text("Cruz Roja Costarricense", 14, 10);
+  doc.setFontSize(9); doc.setFont("helvetica","normal");
+  doc.text("Rol de Servicio de Voluntariado", 14, 16);
+  doc.text(`Generado: ${new Date().toLocaleDateString("es-CR")}`, 297-14, 16, {align:"right"});
+
+  if(modo==="rol") {
+    doc.autoTable({
+      startY:26,
+      head:[["Fecha","Nombre","Hora entrada","Hora salida","Comentarios"]],
+      body: registros.map(r=>[formatFecha(r.fecha), r.nombre, r.entrada, r.salida, r.nota]),
+      headStyles:{fillColor:rd, textColor:bl, fontStyle:"bold", fontSize:9},
+      bodyStyles:{fontSize:8, cellPadding:3},
+      alternateRowStyles:{fillColor:gr},
+      theme:"grid"
+    });
+  } else {
+    const filtroNombre = (document.getElementById("filtro-nombre")?.value||"").toLowerCase();
+    const filtrados = registros.filter(r => !filtroNombre || r.nombre.toLowerCase().includes(filtroNombre));
+    doc.autoTable({
+      startY:26,
+      head:[["#","Nombre","Fecha","Entrada","Salida","Comentarios"]],
+      body: filtrados.map((r,i)=>[i+1, r.nombre, formatFecha(r.fecha), r.entrada, r.salida, r.nota]),
+      headStyles:{fillColor:rd, textColor:bl, fontStyle:"bold", fontSize:9},
+      bodyStyles:{fontSize:8, cellPadding:3},
+      alternateRowStyles:{fillColor:gr},
+      theme:"grid"
+    });
+  }
+
+  const fy = doc.lastAutoTable.finalY + 6;
+  doc.setFontSize(8); doc.setTextColor(100,100,100);
+  doc.text(`Total: ${registros.length} registro(s)`, 14, fy);
+  doc.save(`rol-voluntariado-${new Date().toISOString().slice(0,10)}.pdf`);
+  showToast("📄 PDF descargado.");
+}
+
+// Cargar al inicio y cada 5 minutos automáticamente
+cargarDatos();
+setInterval(cargarDatos, 5 * 60 * 1000);
+</script>
+</body>
+</html>
